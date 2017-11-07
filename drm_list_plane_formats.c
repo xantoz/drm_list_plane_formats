@@ -101,6 +101,11 @@ static void list_planes(int fd)
 {
     drmModePlaneRes *plane_res = drmModeGetPlaneResources(fd);
 
+    if (plane_res == NULL) {
+        fputs("ERROR: Could not get plane resources\n", stderr);
+        abort();
+    }
+
     for (unsigned int i = 0; i < plane_res->count_planes; i++) {
         drmModePlane *drmplane = drmModeGetPlane(fd, plane_res->planes[i]);
         drmModeObjectProperties *properties =
