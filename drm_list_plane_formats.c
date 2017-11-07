@@ -145,7 +145,7 @@ static void list_planes(int fd)
 int main()
 {
     const char *card = "/dev/dri/card0";
-    int fd = open("/dev/dri/card0", O_RDWR | O_CLOEXEC);
+    int fd = open(card, O_RDWR | O_CLOEXEC);
 
     if (fd < 0) {
         fprintf(stderr, "Cannot open card %s: %s\n", card, strerror(errno));
