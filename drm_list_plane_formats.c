@@ -275,6 +275,52 @@ static void list_encoders(int fd)
         drmModeFreeResources(res);
 }
 
+static void list_crtcs(int fd)
+{
+    drmModeRes *res = drmModeGetResources(fd);
+
+    if (res == NULL) {
+        fputs("ERROR: Could not get resources\n", stderr);
+        abort();
+    }
+
+    for (unsigned i = 0; i < res->count_crtcs; ++i) {
+        drmModeCrtc *crtc = drmModeGetCrtc(fd, res->crtcs[i]);
+        if (NULL == crtc)
+            continue;
+
+        char xy[128];
+        snprintf(xy, sizeof(xy), "<x,y>=<%u,%u>,", crtc->x, crtc->y);
+        char wh[128];
+        snprintf(wh, sizeof(wh), "<w,h>=<%u,%u>,", crtc->width, crtc->height);
+
+        printf("crtc_id: %2u, buffer_id: %2u, %-15s %-17s gamma_size: %3d, mode_valid: %d,"
+               "mode={\n"
+               "    .name: \"%s\",\n"
+               "    .clock=%3d,\n"
+               "    .hdisplay=%u, .hsync_start=%u, .hsync_end=%u, .htotal=%u, .hskew=%u,\n"
+               "    .vdisplay=%u, .vsync_start=%u, .vsync_end=%u, .vtotal=%u, .vscan=%u,\n"
+               "    .vrefresh=%u,\n"
+               "    .flags=%u,\n"
+               "    .type=%u\n"
+               "}\n",
+               crtc->crtc_id, crtc->buffer_id, xy, wh, crtc->gamma_size, crtc->mode_valid,
+               crtc->mode.name,
+               crtc->mode.clock,
+               crtc->mode.hdisplay, crtc->mode.hsync_start, crtc->mode.hsync_end, crtc->mode.htotal, crtc->mode.hskew,
+               crtc->mode.vdisplay, crtc->mode.vsync_start, crtc->mode.vsync_end, crtc->mode.vtotal, crtc->mode.vscan,
+               crtc->mode.vrefresh, crtc->mode.flags, crtc->mode.type);
+
+        drmModeFreeCrtc(crtc);
+    }
+
+    if (res)
+        drmModeFreeResources(res);
+}
+
+
+
+
 static void list_connectors(int fd)
 {
     drmModeRes *res = drmModeGetResources(fd);
@@ -345,6 +391,9 @@ int main()
 
     puts("\n--CONNECTORS--");
     list_connectors(fd);
+
+    puts("\n--CRTCS--");
+    list_crtcs(fd);
 
     return 0;
 }
