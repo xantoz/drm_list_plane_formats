@@ -11,6 +11,7 @@
 #include <xf86drmMode.h>
 
 #include <drm_fourcc.h>
+#include <drm.h>
 
 struct uint_string_map
 {
@@ -359,6 +360,33 @@ static void list_connectors(int fd)
         drmModeFreeResources(res);
 }
 
+static void list_caps(int fd)
+{
+    static const struct uint_string_map caps[] = {
+        {DRM_CAP_DUMB_BUFFER, "DRM_CAP_DUMB_BUFFER"},
+        {DRM_CAP_VBLANK_HIGH_CRTC, "DRM_CAP_VBLANK_HIGH_CRTC"},
+        {DRM_CAP_DUMB_PREFERRED_DEPTH, "DRM_CAP_DUMB_PREFERRED_DEPTH"},
+        {DRM_CAP_DUMB_PREFER_SHADOW, "DRM_CAP_DUMB_PREFER_SHADOW"},
+        {DRM_CAP_PRIME, "DRM_CAP_PRIME"},
+        {DRM_PRIME_CAP_IMPORT, "DRM_PRIME_CAP_IMPORT"},
+        {DRM_PRIME_CAP_EXPORT, "DRM_PRIME_CAP_EXPORT"},
+        {DRM_CAP_TIMESTAMP_MONOTONIC, "DRM_CAP_TIMESTAMP_MONOTONIC"},
+        {DRM_CAP_ASYNC_PAGE_FLIP, "DRM_CAP_ASYNC_PAGE_FLIP"},
+        {DRM_CAP_CURSOR_WIDTH, "DRM_CAP_CURSOR_WIDTH"},
+        {DRM_CAP_CURSOR_HEIGHT, "DRM_CAP_CURSOR_HEIGHT"},
+        {DRM_CAP_ADDFB2_MODIFIERS, "DRM_CAP_ADDFB2_MODIFIERS"},
+        {DRM_CAP_PAGE_FLIP_TARGET, "DRM_CAP_PAGE_FLIP_TARGET"},
+        {DRM_CAP_CRTC_IN_VBLANK_EVENT, "DRM_CAP_CRTC_IN_VBLANK_EVENT"},
+        {DRM_CAP_SYNCOBJ, "DRM_CAP_SYNCOBJ"},
+    };
+
+    for (unsigned i = 0; i < sizeof(caps)/sizeof(caps[0]); ++i) {
+        uint64_t value;
+        drmGetCap(fd, caps[i].uint, &value);
+        printf("%s: %zu\n", caps[i].name, value);
+    }
+}
+
 int main()
 {
     const char *card = "/dev/dri/card0";
@@ -368,6 +396,9 @@ int main()
         fprintf(stderr, "Cannot open card %s: %s\n", card, strerror(errno));
         abort();
     }
+
+    printf("\n--CAPS--\n");
+    list_caps(fd);
 
     puts("\n--WITHOUT UNIVERSAL PLANES--");
     list_planes(fd);
