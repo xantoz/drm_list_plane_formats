@@ -387,9 +387,9 @@ static void list_caps(int fd)
     }
 }
 
-int main()
+int main(int argc, char **argv)
 {
-    const char *card = "/dev/dri/card0";
+    const char *card = (argc >= 2) ? argv[1] : "/dev/dri/card0";
     int fd = open(card, O_RDWR | O_CLOEXEC);
 
     if (fd < 0) {
