@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
+#include <inttypes.h>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -319,8 +321,81 @@ static void list_crtcs(int fd)
         drmModeFreeResources(res);
 }
 
+static void list_props(int fd,
+                       uint32_t count_props,
+                       uint32_t *props,
+                       uint64_t *prop_values)
+{
+    for (uint32_t i = 0; i < count_props; ++i) {
+        drmModePropertyRes *prop = drmModeGetProperty(fd, props[i]);
+        if (!prop) {
+            perror("drmModeGetProperty");
+            continue;
+        }
 
 
+        uint32_t flags = prop->flags;
+        uint32_t type = flags &
+            (DRM_MODE_PROP_LEGACY_TYPE | DRM_MODE_PROP_EXTENDED_TYPE);
+
+        bool atomic = flags & DRM_MODE_PROP_ATOMIC;
+        bool immutable = flags & DRM_MODE_PROP_IMMUTABLE;
+
+        const char *desc =
+            (atomic && immutable) ? " (atomic,immutable) " :
+            (atomic)              ? " (atomic) " :
+            (immutable)           ? " (immutable) " : "";
+
+        switch (type) {
+        case DRM_MODE_PROP_RANGE:
+            printf("prop '%s'%s: range [%"PRIu64", %"PRIu64"] = %"PRIu64"\n",
+                   prop->name, desc, prop->values[0], prop->values[1], prop_values[i]);
+            break;
+        case DRM_MODE_PROP_SIGNED_RANGE:
+            // TODO: print current value and min max
+            /* Could maybe ignore this (extended type) */
+            printf("prop '%s'%s: srange TODO\n", prop->name, desc);
+            break;
+        case DRM_MODE_PROP_ENUM:
+        {
+            printf("prop '%s'%s: enum {", prop->name, desc);
+
+            bool first = true;
+            char *value_name = NULL;
+            for (int j = 0; j < prop->count_enums; ++j) {
+                printf("%s'%s'", first ? " " : ", ", prop->enums[j].name);
+                first = false;
+
+                if (prop_values[i] == prop->enums[j].value) {
+                    value_name = prop->enums[j].name;
+                }
+            }
+
+            if (value_name) {
+                printf(" } = '%s'\n", value_name);
+            } else {
+                printf(" } = %"PRIu64"\n", prop_values[i]);
+            }
+
+            break;
+        }
+        case DRM_MODE_PROP_BITMASK:
+            // TODO: print current value as int (hex?) and possible enums (hex?)
+            printf("prop '%s'%s: bitmask TODO\n", prop->name, desc);
+            break;
+        case DRM_MODE_PROP_OBJECT:
+            // TODO: ignore ???
+            /* could be extra ignored? (extended type) */
+            printf("prop '%s': object TODO\n", prop->name, desc);
+            break;
+        case DRM_MODE_PROP_BLOB:
+            // TODO: ignore ???
+            printf("prop '%s': blob TODO\n", prop->name, desc);
+            break;
+        }
+
+    }
+}
 
 static void list_connectors(int fd)
 {
@@ -352,6 +427,8 @@ static void list_connectors(int fd)
                conn->encoder_id,
                drmModeConnection_to_string(conn->connection));
         // TODO: modes
+
+        list_props(fd, conn->count_props, conn->props, conn->prop_values);
 
         drmModeFreeConnector(conn);
     }
